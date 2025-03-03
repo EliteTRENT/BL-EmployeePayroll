@@ -34,7 +34,7 @@ $(document).ready(function () {
     }
 
     function addEmployee() {
-        localStorage.removeItem("editEmployee");
+        localStorage.clear();
         window.location.href = "./empRegister.html";
     }
 

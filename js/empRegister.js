@@ -1,6 +1,7 @@
 let form = document.querySelector("form");
 let submitButton = document.getElementById("emp-reg-submit-button");
 let nameInput = document.getElementById("name");
+let cancelButton = document.getElementById("cancel-btn");
 
 // Name Validation
 nameInput.addEventListener("input", () => {
@@ -87,6 +88,12 @@ function populateFormForEdit(employeeId) {
 if (localStorage.getItem("editEmployeeId")) {
     populateFormForEdit(localStorage.getItem("editEmployeeId"));
 }
+
+// Cancel Button Functionality
+cancelButton.addEventListener("click", () => {
+    localStorage.removeItem("editEmployeeId"); // Clear edit ID if present
+    window.location.href = "../Pages/empDashboard.html"; // Redirect to dashboard
+});
 
 // Form Submission Handler
 form.addEventListener("submit", (event) => {
