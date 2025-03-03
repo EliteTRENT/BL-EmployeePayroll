@@ -4,12 +4,11 @@ $(document).ready(function () {
     let $searchBox = $("#emp-dash-main-search-box");
 
     function loadEmployees() {
-        let employees = JSON.parse(localStorage.getItem("employees")) || [];
-        $employeeTableBody.empty();
+        $.get("http://localhost:3000/employees", function (employees) {
+            $employeeTableBody.empty();
 
-        employees.forEach((employee, index) => {
-            let $row = $(`
-                <tr>
+            employees.forEach((employee, index) => {
+                let row = `<tr>
                     <td>
                         <div class="emp-dash-table-body-img">
                             <img src="${employee.profileImage}" alt="Employee Photo">
@@ -21,16 +20,17 @@ $(document).ready(function () {
                     <td>${employee.salary}</td>
                     <td>${employee.startDate}</td>
                     <td class="emp-actions">
-                        <i class="fa-solid fa-pen edit-btn" data-index="${index}"></i>
-                        <i class="fa-solid fa-trash delete-btn" data-index="${index}"></i>
+                        <i class="fa-solid fa-pen edit-btn" data-id="${employee.id}"></i>
+                        <i class="fa-solid fa-trash delete-btn" data-id="${employee.id}"></i>
                     </td>
-                </tr>
-            `);
-            $employeeTableBody.append($row);
-        });
+                </tr>`;
+                $employeeTableBody.append(row);
+            });
 
-        $(".delete-btn").on("click", deleteEmployee);
-        $(".edit-btn").on("click", editEmployee);
+            attachEventListeners();
+        }).fail(function (error) {
+            console.error("Error loading employees:", error);
+        });
     }
 
     function addEmployee() {
@@ -39,35 +39,34 @@ $(document).ready(function () {
     }
 
     function deleteEmployee() {
-        let index = $(this).data("index");
-        let employees = JSON.parse(localStorage.getItem("employees")) || [];
-
-        employees.splice(index, 1);
-        localStorage.setItem("employees", JSON.stringify(employees));
-
-        loadEmployees();
+        let id = $(this).data("id");
+        $.ajax({
+            url: `http://localhost:3000/employees/${id}`,
+            type: "DELETE",
+            success: function () {
+                loadEmployees();
+            },
+            error: function (error) {
+                console.error("Error deleting employee:", error);
+            }
+        });
     }
 
     function editEmployee() {
-        let index = $(this).data("index");
-        let employees = JSON.parse(localStorage.getItem("employees")) || [];
-        let employee = employees[index];
-
-        localStorage.setItem("editEmployee", JSON.stringify({ employee, index }));
+        let id = $(this).data("id");
+        localStorage.setItem("editEmployeeId", id); // Temporarily store ID in localStorage
         window.location.href = "./empRegister.html";
     }
 
     function searchByName() {
         let searchValue = $searchBox.val().toLowerCase();
-        let employees = JSON.parse(localStorage.getItem("employees")) || [];
-        let hasMatch = false;
+        $.get("http://localhost:3000/employees", function (employees) {
+            let hasMatch = false;
+            $employeeTableBody.empty();
 
-        $employeeTableBody.empty();
-
-        employees.forEach((employee, index) => {
-            if (employee.name.toLowerCase().includes(searchValue)) {
-                let $row = $(`
-                    <tr>
+            employees.forEach((employee, index) => {
+                if (employee.name.toLowerCase().includes(searchValue)) {
+                    let row = `<tr>
                         <td>
                             <div class="emp-dash-table-body-img">
                                 <img src="${employee.profileImage}" alt="Employee Photo">
@@ -79,32 +78,28 @@ $(document).ready(function () {
                         <td>${employee.salary}</td>
                         <td>${employee.startDate}</td>
                         <td class="emp-actions">
-                            <i class="fa-solid fa-pen edit-btn" data-index="${index}"></i>
-                            <i class="fa-solid fa-trash delete-btn" data-index="${index}"></i>
+                            <i class="fa-solid fa-pen edit-btn" data-id="${employee.id}"></i>
+                            <i class="fa-solid fa-trash delete-btn" data-id="${employee.id}"></i>
                         </td>
-                    </tr>
-                `);
-                $employeeTableBody.append($row);
-                hasMatch = true;
-            }
-        });
+                    </tr>`;
+                    $employeeTableBody.append(row);
+                    hasMatch = true;
+                }
+            });
 
-        if (!hasMatch) {
-            $employeeTableBody.html(`
-                <tr id="no-match-message">
-                    <td colspan="6" style="text-align: center; font-weight: bold; color: red;">
-                        No matches found
-                    </td>
-                </tr>
-            `);
-        } else {
-            attachEventListeners();
-        }
+            if (!hasMatch) {
+                $employeeTableBody.html('<tr><td colspan="6" style="text-align: center; font-weight: bold; color: red;">No matches found</td></tr>');
+            } else {
+                attachEventListeners();
+            }
+        }).fail(function (error) {
+            console.error("Error searching employees:", error);
+        });
     }
 
     function attachEventListeners() {
-        $(".delete-btn").on("click", deleteEmployee);
-        $(".edit-btn").on("click", editEmployee);
+        $(".delete-btn").off("click").on("click", deleteEmployee);
+        $(".edit-btn").off("click").on("click", editEmployee);
     }
 
     $addUserButton.on("click", addEmployee);

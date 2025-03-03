@@ -63,8 +63,35 @@ daySelect.addEventListener("change", () => validateDateField(daySelect, "Please 
 monthSelect.addEventListener("change", () => validateDateField(monthSelect, "Please select a valid month."));
 yearSelect.addEventListener("change", () => validateDateField(yearSelect, "Please select a valid year."));
 
+// Populate Form for Editing
+function populateFormForEdit(employeeId) {
+    fetch(`http://localhost:3000/employees/${employeeId}`)
+        .then(response => response.json())
+        .then(employee => {
+            nameInput.value = employee.name;
+            document.querySelector(`input[name='profile-image'][id='${employee.profileImage.split('/').pop().split('.')[0]}']`).checked = true;
+            document.querySelector(`input[name='gender'][value='${employee.gender}']`).checked = true;
+            employee.departments.forEach(dep => {
+                document.querySelector(`input[name='department'][value='${dep}']`).checked = true;
+            });
+            salarySelect.value = employee.salary;
+            let [day, month, year] = employee.startDate.split('-');
+            daySelect.value = day;
+            monthSelect.value = month;
+            yearSelect.value = year;
+            document.querySelector("textarea").value = employee.notes || "";
+        })
+        .catch(error => console.error("Error fetching employee:", error));
+}
+
+if (localStorage.getItem("editEmployeeId")) {
+    populateFormForEdit(localStorage.getItem("editEmployeeId"));
+}
+
 // Form Submission Handler
 form.addEventListener("submit", (event) => {
+    event.preventDefault(); // Prevent default form submission
+
     let isValid = true;
 
     // Profile Image Validation
@@ -105,11 +132,10 @@ form.addEventListener("submit", (event) => {
     }
 
     if (!isValid) {
-        event.preventDefault();
         return;
     }
 
-    // Store Data if Validation Passes
+    // Prepare Employee Data
     let selectedProfileImage = document.querySelector("input[name='profile-image']:checked");
     let profileImagePath = selectedProfileImage 
         ? document.querySelector(`label[for='${selectedProfileImage.id}'] img`)?.src || ""
@@ -125,11 +151,36 @@ form.addEventListener("submit", (event) => {
         notes: document.querySelector("textarea").value.trim()
     };
 
-    let employees = JSON.parse(localStorage.getItem("employees")) || [];
-    employees.push(employeeData);
-    localStorage.setItem("employees", JSON.stringify(employees));
+    // Check if Editing or Adding
+    let editEmployeeId = localStorage.getItem("editEmployeeId");
+    if (editEmployeeId) {
+        // Update Existing Employee
+        fetch(`http://localhost:3000/employees/${editEmployeeId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(employeeData)
+        })
+        .then(() => {
+            console.log("Employee updated successfully");
+            alert("Employee updated successfully");
+            localStorage.removeItem("editEmployeeId");
+        })
+        .catch(error => console.error("Error updating employee:", error));
+    } else {
+        // Add New Employee
+        fetch("http://localhost:3000/employees", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(employeeData)
+        })
+        .then(() => {
+            console.log("Employee registered successfully");
+            alert("Employee registered successfully");
+            form.reset();
+        })
+        .catch(error => console.error("Error adding employee:", error));
+    }
 
-    alert("Employee registered successfully");
-
-    setTimeout(() => form.reset(), 0);
+    // Redirect to dashboard after submission
+    window.location.href = "../Pages/empDashboard.html";
 });
